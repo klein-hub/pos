@@ -1,0 +1,12 @@
+/* Roboto is loaded from index.html with preconnect — a CSS @import would
+   serialise the font request behind the stylesheet. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Tabular figures everywhere money and quantities appear, so columns of
+   numbers line up instead of jittering as digits change. */
+.numeric {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}

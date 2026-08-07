@@ -1,0 +1,21 @@
+{
+  "name": "digita-pos",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "pnpm@11.1.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev:admin": "pnpm --filter @digita/admin dev",
+    "dev:pos": "pnpm --filter @digita/pos start",
+    "build": "pnpm --filter @digita/admin build",
+    "test": "pnpm --filter @digita/core test",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.3"
+  }
+}
