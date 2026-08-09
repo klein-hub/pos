@@ -89,6 +89,26 @@ Recipes are *written* as `2 pumps` and *stored/costed* in base units. Calibratio
 
 **Density:** the sheet mixes mass and volume in one column — sauces are `2L / Bottle`, syrups are `2.5kg / Bottle`. Chocolate sauce runs ~1.3 g/ml, so 2 L ≈ 2.6 kg. Items therefore carry an optional `density_g_per_ml`, and Receive Stock asks for the unit **printed on the label**, never a house-standard unit.
 
+### Batch-produced sellables
+
+Cakes, mango float and similar are prepped once and sold by the slice. This
+needs no new concept — a cake is a `sub_assembly` whose base unit is `each` and
+whose prep recipe yields N servings:
+
+```
+Cheesecake            sub_assembly, baseUnit 'each', prepYieldQty 12
+  prep recipe:        cream cheese 1250g, refined sugar 675g, flour 47g,
+                      whipped cream 150g, egg x6, graham 300g, butter 150g
+                      = ₱1,006.62 per batch → ₱83.89 per slice
+
+Cheesecake Slice      composite, sellable
+  recipe:             1 x Cheesecake + 1 Hamburger Box + 1 Wooden Fork
+                      = ₱87.37
+```
+
+Packaging belongs in the recipe, not in a separate table nobody references —
+the box and fork are 4% of that slice.
+
 ### Required item coverage
 
 The current spreadsheet tracks only reorder-from-supplier goods (beans, sauces, powders, syrups). Costing needs the full bill of materials. Categories that must exist before any margin number is trustworthy:
@@ -192,6 +212,23 @@ Sub-assembly recursion is depth-limited and cycle-checked.
 11. Recipes written in **pumps/scoops**, costed in grams, so the model matches what happens at the bar
 12. Par levels for fast/perishable items (beans: MAX 10 with ON HAND 10 and a 3–4 week freshness window) derived from velocity × lead time instead of a fixed ceiling
 13. Slow/seasonal SKUs (blueberry, orange, lychee, passion fruit — all at 0, all SLOW/SEASONAL) surfaced in the menu matrix so dead stock gets a decision instead of a reorder
+
+### Errors found in the existing costing sheets (Aug 2026)
+
+Each of these is structurally impossible in the new model, which is the point of
+replacing the sheets rather than tidying them.
+
+| Problem | Effect | Why it cannot recur |
+|---|---|---|
+| Cheesecake egg row showed its per-unit price (₱0.02) instead of qty × price (₱42.00) | Batch understated by **4.2%** | Line totals are computed by the engine, never typed |
+| Egg priced per piece but measured in grams | Nonsense unit cost | Base unit is declared once on the item |
+| Older sheet: sugar 100.25 ÷ 100 g = **₱1,002.50/kg** vs ₱104/kg | **9.6×** overstatement | Qty entered in purchase units; per-unit cost derived |
+| Per-unit prices rounded to 2dp | Milk −2.78%, sugar −3.85%, syrups −1.96%, all downward | Costs held at 6dp, rounded only at display |
+| Delivery folded into the item name ("Beans + Delivery Fee") | Cannot see the split; per-gram cost does not fall on bigger orders | `landedUnitCost` allocates fees by line value |
+| Prices stored as text: `535 / 1kg`, `159 / 227g`, `7 / pc` | Every use needs manual division — the source of the egg error | Structured `packSize` + `packPrice` |
+| Two chocolate sauces 32% apart per ml | Cost depends on which one a recipe happens to name | Duplicate detection on the item master |
+| 16oz cup +50%, 22oz +46%, beans −7.2% between sheet versions, unrecorded | Past margins silently restate | `price_history` + per-sale-line COGS snapshot |
+| Packaging table priced but attached to no recipe | Packaging invisible in cost | Packaging are ordinary recipe lines |
 
 ---
 

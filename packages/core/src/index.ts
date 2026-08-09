@@ -13,6 +13,9 @@ export * from './costing/pricing.js';
 export * from './costing/reorder.js';
 export * from './costing/menu.js';
 
+// Opening price list transcribed from the shop's costing sheets
+export * from './seed/openingCosts.js';
+
 // Utilities
 export * from './utils/money.js';
 
