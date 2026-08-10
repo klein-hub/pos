@@ -6,6 +6,8 @@ import { AdminLayout } from './layouts/AdminLayout';
 import { ComingSoon } from './pages/ComingSoon';
 import { Dashboard } from './pages/Dashboard';
 import { Login } from './pages/Login';
+import { MenuMargins } from './pages/MenuMargins';
+import { Recipes } from './pages/Recipes';
 import { useAuthStore } from './store/authStore';
 
 function RequireAuth({ children }: { children: JSX.Element }) {
@@ -40,16 +42,7 @@ export default function App() {
           }
         >
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route
-            path="/menu"
-            element={
-              <ComingSoon
-                title="Menu & Margins"
-                phase="Phase 4 — recipes, price setter, menu engineering matrix"
-                blurb="Set a price and see cost, VAT and margin update live, with every drink plotted on a profit-by-popularity grid."
-              />
-            }
-          />
+          <Route path="/menu" element={<MenuMargins />} />
           <Route
             path="/inventory"
             element={
@@ -70,16 +63,7 @@ export default function App() {
               />
             }
           />
-          <Route
-            path="/recipes"
-            element={
-              <ComingSoon
-                title="Recipes"
-                phase="Phase 4 — recipe builder"
-                blurb="Build a drink from ingredients and prep items, dosed in pumps or grams, with a live cost roll-up."
-              />
-            }
-          />
+          <Route path="/recipes" element={<Recipes />} />
           <Route
             path="/counts"
             element={
