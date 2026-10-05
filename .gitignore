@@ -8,3 +8,6 @@ build/
 .DS_Store
 coverage/
 *.tsbuildinfo
+
+# pg_dump snapshots taken before touching the shared database
+.backups/
