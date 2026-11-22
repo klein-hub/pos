@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import {
   Badge,
+  Button,
   Box,
   Container,
   Flex,
@@ -29,11 +30,13 @@ import {
   ReceiptText,
   Search,
   ShieldCheck,
+  UsersRound,
   ShoppingCart,
   Users,
   type LucideIcon,
 } from 'lucide-react';
 import { appHref, filterAppsByAccess, withHandoff, type LaunchableApp } from '@digita/core';
+import { Link as RouterLink } from 'react-router-dom';
 import { apps } from '../lib/apps';
 import { useAuthStore } from '../store/authStore';
 
@@ -110,6 +113,11 @@ export function Launcher() {
         </Flex>
 
         <Flex align="center" gap={3}>
+        {(isSuperAdmin || access.some((c) => c.canManage)) && (
+          <Button as={RouterLink} to="/admin" size="sm" variant="ghost" leftIcon={<UsersRound size={16} />}>
+            {isSuperAdmin ? 'Clients & access' : 'People & access'}
+          </Button>
+        )}
         {access.length > 1 && (
           <Menu placement="bottom-end">
             <MenuButton as={Box} cursor="pointer">

@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import { Stack } from 'expo-router';
+import { takeHandoffFromUrl } from '@digita/core';
 import { StatusBar } from 'expo-status-bar';
 import { useSessionStore } from '../store/session';
 import { useShopStore } from '../store/shop';
@@ -19,6 +21,13 @@ export default function RootLayout() {
   const restoreShift = useSessionStore((s) => s.restoreShift);
 
   useEffect(() => {
+    // Arriving from the launcher puts the session in the URL fragment. The
+    // till still runs on its demo backend and has no sign-in to adopt it
+    // into, but the token must not sit in the address bar or history either
+    // way — so it is read and stripped here, even though nothing uses it yet.
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      takeHandoffFromUrl(window.location, window.history);
+    }
     void load();
     // A failure here is retried by unlock(), which surfaces it on the PIN pad.
     restoreShift().catch(() => {});

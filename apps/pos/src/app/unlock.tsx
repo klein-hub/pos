@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../components/Button';
 import { Keypad } from '../components/Keypad';
 import { ShiftReport } from '../components/ShiftReport';
+import { BackToHub } from '../components/BackToHub';
 import { DemoBadge } from '../components/TopBar';
 import { backend } from '../backend';
 import { DEMO_PINS } from '../backend/demo';
@@ -52,6 +53,11 @@ export default function Unlock() {
 
   return (
     <SafeAreaView style={styles.screen}>
+      {/* The PIN pad is where someone lands from the launcher, so the way back
+          has to be here too, not only in the register's top bar. Web only. */}
+      <View style={styles.hubLink}>
+        <BackToHub />
+      </View>
       <View style={styles.column}>
         <View style={styles.brand}>
           <Text style={styles.shop}>{shop?.companyName ?? 'Digita POS'}</Text>
@@ -109,6 +115,7 @@ export default function Unlock() {
 }
 
 const styles = StyleSheet.create({
+  hubLink: { position: 'absolute', top: 12, right: 12, zIndex: 1 },
   screen: { flex: 1, backgroundColor: colors.canvas, alignItems: 'center', justifyContent: 'center' },
   column: { width: '100%', maxWidth: 380, padding: 24, gap: 18 },
   brand: { alignItems: 'center', gap: 6, marginBottom: 8 },

@@ -297,3 +297,118 @@ begin
   perform pg_temp.check_eq((v_sales_n > 0), true, 'a sales-only user still sees the catalog');
   raise notice '--- app access tests passed ---';
 end $$;
+
+-- =============================================================================
+-- Tenant tiers and the three cross-tenant holes (20261124090000).
+-- Each hole was reproduced against live-faithful policies before the fix.
+-- =============================================================================
+
+do $$
+declare
+  a_co  uuid := '0e573ed8-ebe8-4e32-88aa-87100e838dab';  -- Zenverse
+  b_co  uuid := '11111111-2222-4333-8444-555555555555';  -- the demo company, as "another tenant"
+  a_adm uuid := gen_random_uuid();
+  a_own uuid := gen_random_uuid();
+  a_usr uuid := gen_random_uuid();
+  b_usr uuid := gen_random_uuid();
+  n int;
+begin
+  insert into auth.users (id, email) values
+    (a_adm, 'a-admin@t'), (a_own, 'a-owner@t'), (a_usr, 'a-user@t'), (b_usr, 'b-user@t');
+  insert into profiles (id, company_id, role) values
+    (a_adm, a_co, 'admin'), (a_own, a_co, 'owner'), (a_usr, a_co, 'user'), (b_usr, b_co, 'user');
+
+  -- Hole 1: self-promotion
+  perform set_config('request.jwt.claim.sub', a_usr::text, true);
+  perform set_config('request.jwt.claims', '{}', true);
+  set local role authenticated;
+  begin
+    update profiles set role = 'admin', company_id = b_co where id = a_usr;
+    reset role;
+    raise exception 'FAIL  a user promoted themselves';
+  exception when others then
+    reset role;
+    if sqlerrm like 'FAIL%' then raise; end if;
+    raise notice 'PASS  a user cannot change their own role or company  (%)', left(sqlerrm, 50);
+  end;
+
+  -- Hole 2: reading another tenant's people
+  perform set_config('request.jwt.claim.sub', a_adm::text, true);
+  set local role authenticated;
+  select count(*) into n from profiles where company_id = b_co;
+  reset role;
+  perform pg_temp.check_eq(n, 0, 'an admin of one company sees no profiles of another');
+
+  -- Hole 2b: editing another tenant's people
+  set local role authenticated;
+  update profiles set first_name = 'pwned' where id = b_usr;
+  get diagnostics n = row_count;
+  reset role;
+  perform pg_temp.check_eq(n, 0, 'an admin of one company cannot edit another''s people');
+
+  -- Hole 3: redefining global roles
+  set local role authenticated;
+  begin
+    insert into roles (name) values ('evil');
+    reset role;
+    raise exception 'FAIL  a company admin wrote to the global roles table';
+  exception when others then
+    reset role;
+    if sqlerrm like 'FAIL%' then raise; end if;
+    raise notice 'PASS  a company admin cannot write global roles  (%)', left(sqlerrm, 50);
+  end;
+
+  -- Admin (not owner) cannot appoint an owner
+  set local role authenticated;
+  begin
+    perform public.set_member_role(a_co, a_usr, 'owner');
+    reset role;
+    raise exception 'FAIL  a non-owner appointed an owner';
+  exception when others then
+    reset role;
+    if sqlerrm like 'FAIL%' then raise; end if;
+    raise notice 'PASS  only an owner can appoint an owner  (%)', left(sqlerrm, 50);
+  end;
+
+  -- Owner gets exactly the licensed apps
+  delete from company_apps where company_id = a_co and app_id = 'payroll';
+  perform set_config('request.jwt.claim.sub', a_own::text, true);
+  set local role authenticated;
+  perform pg_temp.check_eq(
+    'payroll' = any (public.my_app_access(a_co)), false,
+    'an owner cannot reach an app the company has not licensed');
+  perform pg_temp.check_eq(
+    'inventory' = any (public.my_app_access(a_co)), true,
+    'an owner reaches every licensed app without grants');
+  reset role;
+
+  -- Owners and admins can remove people
+  perform set_config('request.jwt.claim.sub', a_adm::text, true);
+  set local role authenticated;
+  perform public.remove_member(a_co, a_usr);
+  reset role;
+  perform pg_temp.check_eq(
+    (select company_id from profiles where id = a_usr), null::uuid,
+    'a company admin can remove someone from their company');
+
+  -- The console's company list is Digita's alone
+  perform set_config('request.jwt.claim.sub', a_own::text, true);
+  set local role authenticated;
+  begin
+    perform * from public.admin_companies();
+    reset role;
+    raise exception 'FAIL  a company owner listed every company';
+  exception when others then
+    reset role;
+    if sqlerrm like 'FAIL%' then raise; end if;
+    raise notice 'PASS  only Digita admins can list every company';
+  end;
+
+  perform set_config('request.jwt.claims', '{"app_metadata":{"role":"super_admin"}}', true);
+  set local role authenticated;
+  select count(*) into n from public.admin_companies();
+  reset role;
+  perform pg_temp.check_eq(n >= 2, true, 'a Digita admin lists every company');
+
+  raise notice '--- tenant tier tests passed ---';
+end $$;

@@ -28,6 +28,7 @@ export * from './data/catalogRepository.js';
 export * from './apps/registry.js';
 export * from './apps/handoff.js';
 export * from './apps/access.js';
+export * from './apps/admin.js';
 
 // Utilities
 export * from './utils/money.js';

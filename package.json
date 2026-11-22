@@ -9,13 +9,13 @@
   },
   "scripts": {
     "dev:admin": "pnpm --filter @digita/admin dev",
-    "dev:pos": "pnpm --filter @digita/pos start",
+    "dev:pos": "pnpm --filter @digita/pos dev",
     "build": "turbo run build",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
     "dev:hub": "pnpm --filter @digita/hub dev",
-    "dev:all": "pnpm --parallel --filter @digita/hub --filter @digita/admin --filter @digita/payroll dev",
+    "dev:all": "pnpm --parallel --filter @digita/hub --filter @digita/admin --filter @digita/payroll --filter @digita/pos dev",
     "dev:payroll": "pnpm --filter @digita/payroll dev"
   },
   "devDependencies": {

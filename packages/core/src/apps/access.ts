@@ -24,6 +24,10 @@ export async function fetchMyApps(
 export interface CompanyAccess {
   companyId: string;
   companyName: string;
+  /** owner | admin | manager | user | viewer | digita_admin */
+  role: string;
+  /** May manage this company's people and access. */
+  canManage: boolean;
   apps: AppId[];
 }
 
@@ -31,9 +35,21 @@ export interface CompanyAccess {
 export async function fetchAppAccessSummary(client: SupabaseClient): Promise<CompanyAccess[]> {
   const { data, error } = await client.rpc('my_app_access_summary');
   if (error) throw new Error(`Could not read app access: ${error.message}`);
-  return ((data ?? []) as { company_id: string; company_name: string; apps: AppId[] }[]).map(
-    (r) => ({ companyId: r.company_id, companyName: r.company_name, apps: r.apps ?? [] }),
-  );
+  return (
+    (data ?? []) as {
+      company_id: string;
+      company_name: string;
+      role: string;
+      can_manage: boolean;
+      apps: AppId[];
+    }[]
+  ).map((r) => ({
+    companyId: r.company_id,
+    companyName: r.company_name,
+    role: r.role,
+    canManage: r.can_manage,
+    apps: r.apps ?? [],
+  }));
 }
 
 /**
