@@ -34,7 +34,17 @@ export function Recipes() {
   } = useCatalogStore();
   const ctx = useCostingContext();
 
-  const [selectedId, setSelectedId] = useState<string>(variants[0]?.id ?? '');
+  const [requestedId, setSelectedId] = useState<string>('');
+
+  // Switching data source replaces every row, and the new ones carry different
+  // ids — database uuids rather than seed slugs. A selection held in state
+  // would survive that swap and point at something gone, leaving the page
+  // showing an empty recipe at zero. Fall back to the first variant whenever
+  // the requested one is not in the catalog currently loaded.
+  const selectedId =
+    requestedId && (variants.some((v) => v.id === requestedId) || items.some((i) => i.id === requestedId))
+      ? requestedId
+      : (variants[0]?.id ?? '');
   const [addItemId, setAddItemId] = useState<string>('');
 
   const cardBg = useColorModeValue('white', 'gray.800');

@@ -29,7 +29,10 @@ function RequireAuth({ children }: { children: JSX.Element }) {
 
 export default function App() {
   const initialise = useAuthStore((s) => s.initialise);
-  const session = useAuthStore((s) => s.session);
+  // The user id, not the session object: the object's identity changes on
+  // every token refresh and rehydrate, which refired the effect and reloaded
+  // the whole catalog each time.
+  const userId = useAuthStore((s) => s.session?.user?.id ?? null);
   const initialised = useAuthStore((s) => s.initialised);
   const startData = useDataModeStore((s) => s.start);
 
@@ -41,8 +44,8 @@ export default function App() {
   // may switch and which company their profile points at, and loading before
   // that is known would read the wrong company and then have to redo it.
   useEffect(() => {
-    if (initialised && session) void startData();
-  }, [initialised, session, startData]);
+    if (initialised && userId) void startData();
+  }, [initialised, userId, startData]);
 
   return (
     <Router>
