@@ -98,9 +98,16 @@ Use the `shared-db-migration` skill for the full protocol.
 **All five migrations (`20260812090000`–`20260812094000`) are applied to live**
 as of 2026-11-22, and recorded in `supabase_migrations.schema_migrations`.
 
-Live now holds 36 seeded items and one location (Main Store) for Zenverse
-Cafe, no stock batches, and `pos_stock_batches.location_id` is `NOT NULL` with
-`ON DELETE RESTRICT` — the two-open-containers defect is closed.
+`20261122120000_pos_seed_catalog` followed, adding the rest of the catalog.
+
+Live now holds, for Zenverse Cafe: **39 items** (36 raw materials + 3 prep),
+one location (Main Store), **10 products / 13 variants**, 4 modifier groups,
+8 modifiers and **60 recipe lines**. No stock batches yet.
+`pos_stock_batches.location_id` is `NOT NULL` with `ON DELETE RESTRICT` — the
+two-open-containers defect is closed.
+
+Costed from live, a Cheesecake batch comes to ₱1,006.62 over 12 slices =
+₱83.89 each, matching the engine's test and the corrected spreadsheet.
 
 Costs currently resolve with `cost_source = 'standard'` (the price list),
 because nothing has been received yet. The first Receive Stock will flip the
