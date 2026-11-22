@@ -11,3 +11,6 @@ coverage/
 
 # pg_dump snapshots taken before touching the shared database
 .backups/
+
+# turborepo task cache
+.turbo/

@@ -38,8 +38,13 @@ editing the costing engine is live in both apps with no build step. That is why
 
 ## Commands
 
+Tasks run through Turborepo, which caches by input hash — an untouched
+package is skipped rather than rebuilt. `dev` stays on pnpm: long-lived
+servers are not cacheable tasks.
+
 ```bash
 pnpm install
+pnpm dev:all          # hub :5175 · admin :5174 · payroll :5173
 pnpm dev:admin        # Vite on :5174
 pnpm test             # costing engine, 71 jest tests
 pnpm typecheck        # all workspaces

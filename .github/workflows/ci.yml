@@ -30,6 +30,18 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # Turbo caches by input hash. Keyed on the lockfile and the commit so a
+      # run can reuse the previous commit's work for packages that did not
+      # change; without remote caching this is the local equivalent.
+      - name: Turbo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+            turbo-${{ runner.os }}-
+
       - name: Tests
         run: pnpm test
 
@@ -43,9 +55,7 @@ jobs:
         env:
           VITE_SUPABASE_URL: https://ci.invalid.supabase.co
           VITE_SUPABASE_ANON_KEY: ci-placeholder-anon-key
-        run: |
-          pnpm --filter @digita/admin build
-          pnpm --filter @digita/hub build
+        run: pnpm build
 
       # A missing .env silently strips the entire Supabase client from the
       # bundle via dead-code elimination — the build still succeeds, and the
@@ -53,7 +63,7 @@ jobs:
       # need catching twice.
       - name: The Supabase client is actually in the bundle
         run: |
-          for app in admin hub; do
+          for app in admin hub payroll; do
             if ! grep -rqs "refresh_token" "apps/$app/dist/assets/"; then
               echo "::error::apps/$app bundle has no Supabase client — dead-code eliminated?"
               exit 1
