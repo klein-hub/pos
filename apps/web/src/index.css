@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .container-x { @apply mx-auto w-full max-w-6xl px-5 sm:px-8; }
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2; }
+  .btn-primary { @apply btn bg-brand-600 text-white hover:bg-brand-700 shadow-sm; }
+  .btn-ghost { @apply btn text-ink hover:bg-ink/5; }
+  .btn-outline { @apply btn border border-ink/15 bg-white text-ink hover:border-ink/30; }
+  .eyebrow { @apply text-xs font-semibold uppercase tracking-[0.14em] text-brand-700; }
+  .h-display { @apply font-display font-extrabold tracking-tight text-ink; }
+}

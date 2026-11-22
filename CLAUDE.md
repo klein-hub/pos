@@ -11,7 +11,9 @@ against plausible alternatives.
 ## Layout
 
 ```
-apps/hub        Vite + React — the app launcher (:5175). Signs in, links out.
+apps/web        Vite + React + Tailwind — public site: landing, pricing,
+                checkout (:5176). Static; no Supabase. Netlify SPA redirect.
+apps/hub        Vite + React — launcher + access console (:5175).
 apps/admin      Vite + React + Chakra — Sales + Inventory + Admin (:5174)
 apps/payroll    Vite + React + Chakra — payroll (:5173), plus an Express
                 admin API on :3000 for the two service-role operations

@@ -15,8 +15,9 @@
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
     "dev:hub": "pnpm --filter @digita/hub dev",
-    "dev:all": "pnpm --parallel --filter @digita/hub --filter @digita/admin --filter @digita/payroll --filter @digita/pos dev",
-    "dev:payroll": "pnpm --filter @digita/payroll dev"
+    "dev:all": "pnpm --parallel --filter @digita/hub --filter @digita/admin --filter @digita/payroll --filter @digita/pos --filter @digita/web dev",
+    "dev:payroll": "pnpm --filter @digita/payroll dev",
+    "dev:web": "pnpm --filter @digita/web dev"
   },
   "devDependencies": {
     "turbo": "^2.11.13",
