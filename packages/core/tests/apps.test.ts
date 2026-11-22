@@ -1,5 +1,8 @@
 import { describe, expect, it } from '@jest/globals';
-import { HANDOFF_KEY, appHref, resolveApps, takeHandoffFromUrl, withHandoff } from '../src/index.js';
+import {
+  HANDOFF_KEY, appHref, resolveApps, takeHandoffFromUrl, withHandoff,
+  type UrlHistory, type UrlLocation,
+} from '../src/index.js';
 
 describe('app registry', () => {
   it('offers every app the launcher shows', () => {
@@ -39,13 +42,13 @@ describe('session handoff', () => {
   const session = { access_token: 'acc.ess', refresh_token: 'ref/resh+1' };
 
   function fakeLocation(hash: string) {
-    return { hash, pathname: '/inventory', search: '' } as Location;
+    return { hash, pathname: '/inventory', search: '' } satisfies UrlLocation;
   }
   function fakeHistory() {
     const calls: string[] = [];
     return {
       calls,
-      history: { replaceState: (_a: unknown, _b: string, url: string) => calls.push(url) } as unknown as History,
+      history: { replaceState: (_a: unknown, _b: string, url: string) => { calls.push(url); } } satisfies UrlHistory,
     };
   }
 

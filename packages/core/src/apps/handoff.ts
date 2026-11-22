@@ -20,6 +20,20 @@ export interface HandoffSession {
   refresh_token: string;
 }
 
+/**
+ * Structural stand-ins for the two browser objects this needs. Core has no
+ * DOM lib on purpose — React Native consumes it too — so naming `Location`
+ * and `History` directly would not compile.
+ */
+export interface UrlLocation {
+  hash: string;
+  pathname: string;
+  search: string;
+}
+export interface UrlHistory {
+  replaceState(data: unknown, unused: string, url: string): void;
+}
+
 /** base64url, so the value survives a URL without escaping. */
 function encode(value: string): string {
   const bytes = new TextEncoder().encode(value);
@@ -53,7 +67,10 @@ export function withHandoff(href: string, session: HandoffSession | null): strin
  * address bar, so a copied link or a reload cannot replay someone's tokens.
  * Returns null when there is nothing to read.
  */
-export function takeHandoffFromUrl(location: Location, history: History): HandoffSession | null {
+export function takeHandoffFromUrl(
+  location: UrlLocation,
+  history: UrlHistory,
+): HandoffSession | null {
   const hash = location.hash.startsWith('#') ? location.hash.slice(1) : location.hash;
   if (!hash) return null;
 
