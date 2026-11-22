@@ -22,6 +22,11 @@ interface SessionState {
   /** The shift just closed, shown on the PIN screen until the next unlock. */
   lastClose: ClosedShift | null;
 
+  /**
+   * Pick up a shift left open on this till (after a reload, restart or
+   * sign-out), so the opening float is only ever counted once per shift.
+   */
+  restoreShift: () => Promise<void>;
   unlock: (pin: string) => Promise<boolean>;
   lock: () => void;
   openShift: (openingFloat: Centavos) => Promise<void>;
@@ -36,18 +41,22 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   sales: [],
   lastClose: null,
 
+  restoreShift: async () => {
+    if (get().shift) return;
+    const shift = await backend.findOpenShift();
+    if (!shift || get().shift) return;
+    const sales = newestFirst(await backend.listShiftSales(shift.id));
+    set({ shift, sales });
+  },
+
   unlock: async (pin) => {
     const cashier = await backend.verifyPin(pin);
     if (!cashier) return false;
 
     // Resolve the shift before setting the cashier, so the route guards flip
     // once — straight to the register — instead of flashing the open-shift screen.
-    let { shift, sales } = get();
-    if (!shift) {
-      shift = await backend.findOpenShift();
-      sales = shift ? newestFirst(await backend.listShiftSales(shift.id)) : [];
-    }
-    set({ cashier, shift, sales, lastClose: null });
+    await get().restoreShift();
+    set({ cashier, lastClose: null });
     return true;
   },
 

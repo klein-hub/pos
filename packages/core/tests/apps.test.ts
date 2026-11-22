@@ -1,6 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 import {
-  HANDOFF_KEY, appHref, resolveApps, takeHandoffFromUrl, withHandoff,
+  HANDOFF_KEY, appHref, decideAccess, filterAppsByAccess, resolveApps,
+  takeHandoffFromUrl, withHandoff,
   type UrlHistory, type UrlLocation,
 } from '../src/index.js';
 
@@ -91,5 +92,25 @@ describe('session handoff', () => {
     expect(withHandoff('http://x/y', null)).toBe('http://x/y');
     const { history } = fakeHistory();
     expect(takeHandoffFromUrl(fakeLocation(''), history)).toBeNull();
+  });
+});
+
+describe('app access (layers 2 and 3)', () => {
+  it('shows only the tiles the user can open', () => {
+    const visible = filterAppsByAccess(resolveApps(), ['sales', 'payroll']);
+    expect(visible.map((a) => a.id)).toEqual(['sales', 'payroll']);
+  });
+
+  it('shows nothing rather than everything when a user has no grants', () => {
+    // The dangerous failure mode is treating "empty" as "unrestricted".
+    expect(filterAppsByAccess(resolveApps(), [])).toEqual([]);
+  });
+
+  it('lets a user into an app they hold', () => {
+    expect(decideAccess('inventory', ['sales', 'inventory'])).toEqual({ status: 'granted' });
+  });
+
+  it('refuses one they do not, and says where they can go instead', () => {
+    expect(decideAccess('inventory', ['sales'])).toEqual({ status: 'denied', granted: ['sales'] });
   });
 });

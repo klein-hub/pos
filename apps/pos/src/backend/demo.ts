@@ -1,4 +1,5 @@
 import { buildSeedCatalog, summariseShift, type Centavos } from '@digita/core';
+import { readJson, removeKey, writeJson } from '../lib/deviceStorage';
 import { toShiftRecord } from '../lib/shift';
 import type { Cashier, ClosedShift, PosBackend, RecordedSale, Shift } from './types';
 
@@ -15,14 +16,43 @@ const DEMO_STAFF: { pin: string; cashier: Cashier }[] = [
 export const DEMO_PINS = DEMO_STAFF.map((s) => s.pin);
 
 /**
- * In-memory backend on the shared seed catalog. Receipt numbers carry a DEMO
- * prefix so a screenshot of one can never pass for a real sale.
+ * The open shift and its sales, kept on the device so a reload or restart
+ * resumes the shift instead of asking for the opening float again. This is the
+ * demo stand-in for the live backend's pos_shifts row with closed_at IS NULL.
+ */
+const TILL_KEY = 'digita-pos.demo.till.v1';
+
+interface TillState {
+  openShift: Shift | null;
+  sales: RecordedSale[];
+  receiptSeq: number;
+}
+
+/**
+ * Backend on the shared seed catalog, with till state persisted to the device.
+ * Receipt numbers carry a DEMO prefix so a screenshot of one can never pass
+ * for a real sale.
  */
 export function createDemoBackend(): PosBackend {
-  let openShift: Shift | null = null;
-  const sales: RecordedSale[] = [];
-  let receiptSeq = 0;
+  const saved = readJson<TillState>(TILL_KEY);
+  let openShift: Shift | null = saved?.openShift ?? null;
+  // Sales outlive their shift only in memory; storage keeps the open shift's.
+  const sales: RecordedSale[] = openShift ? (saved?.sales ?? []) : [];
+  let receiptSeq = saved?.receiptSeq ?? 0;
   let idSeq = 0;
+
+  const save = () => {
+    if (openShift === null && receiptSeq === 0) {
+      removeKey(TILL_KEY);
+      return;
+    }
+    const shiftId = openShift?.id;
+    writeJson(TILL_KEY, {
+      openShift,
+      sales: shiftId ? sales.filter((s) => s.shiftId === shiftId) : [],
+      receiptSeq,
+    } satisfies TillState);
+  };
   const newId = (prefix: string) => `${prefix}-${Date.now().toString(36)}-${(++idSeq).toString(36)}`;
 
   return {
@@ -46,6 +76,7 @@ export function createDemoBackend(): PosBackend {
     async openShift(openingFloat: Centavos) {
       if (openShift) throw new Error('A shift is already open on this till.');
       openShift = { id: newId('shift'), openedAt: new Date().toISOString(), openingFloat };
+      save();
       return openShift;
     },
 
@@ -62,6 +93,7 @@ export function createDemoBackend(): PosBackend {
       );
       const closed: ClosedShift = { ...openShift, closedAt: new Date().toISOString(), summary };
       openShift = null;
+      save();
       return closed;
     },
 
@@ -77,6 +109,7 @@ export function createDemoBackend(): PosBackend {
         status: 'completed',
       };
       sales.push(sale);
+      save();
       return sale;
     },
   };

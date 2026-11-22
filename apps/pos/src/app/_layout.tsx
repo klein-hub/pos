@@ -16,10 +16,13 @@ export default function RootLayout() {
   const load = useShopStore((s) => s.load);
   const hasCashier = useSessionStore((s) => s.cashier !== null);
   const hasShift = useSessionStore((s) => s.shift !== null);
+  const restoreShift = useSessionStore((s) => s.restoreShift);
 
   useEffect(() => {
     void load();
-  }, [load]);
+    // A failure here is retried by unlock(), which surfaces it on the PIN pad.
+    restoreShift().catch(() => {});
+  }, [load, restoreShift]);
 
   return (
     <>

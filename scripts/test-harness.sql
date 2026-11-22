@@ -29,10 +29,24 @@ create table public.companies (
   updated_at timestamptz not null default now()
 );
 
+create table public.roles (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  description text
+);
+
+insert into public.roles (name, description) values
+  ('admin', 'Administrator role'),
+  ('manager', 'Have access to all comapany data except delete'),
+  ('super_admin', 'Have access to all'),
+  ('user', 'Default role for regular users'),
+  ('viewer', 'Read-only viewer');
+
 create table public.profiles (
   id uuid primary key,
   company_id uuid references public.companies (id),
-  role text not null default 'user'
+  role text not null default 'user',
+  role_id uuid references public.roles (id)
 );
 
 -- position and employment_type are NOT NULL with no default in live, so they

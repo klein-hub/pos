@@ -3,6 +3,7 @@ import { Center, Spinner } from '@chakra-ui/react';
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AdminLayout } from './layouts/AdminLayout';
+import { RequireAppAccess } from './components/RequireAppAccess';
 import { ComingSoon } from './pages/ComingSoon';
 import { Dashboard } from './pages/Dashboard';
 import { Inventory } from './pages/Inventory';
@@ -59,13 +60,34 @@ export default function App() {
             </RequireAuth>
           }
         >
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/menu" element={<MenuMargins />} />
-          <Route path="/inventory" element={<Inventory />} />
-          <Route path="/purchasing" element={<Purchasing />} />
-          <Route path="/recipes" element={<Recipes />} />
-          <Route path="/counts" element={<StockCounts />} />
-          <Route path="/waste" element={<Waste />} />
+          <Route
+            path="/dashboard"
+            element={<RequireAppAccess app="sales"><Dashboard /></RequireAppAccess>}
+          />
+          <Route
+            path="/menu"
+            element={<RequireAppAccess app="sales"><MenuMargins /></RequireAppAccess>}
+          />
+          <Route
+            path="/inventory"
+            element={<RequireAppAccess app="inventory"><Inventory /></RequireAppAccess>}
+          />
+          <Route
+            path="/purchasing"
+            element={<RequireAppAccess app="inventory"><Purchasing /></RequireAppAccess>}
+          />
+          <Route
+            path="/recipes"
+            element={<RequireAppAccess app="inventory"><Recipes /></RequireAppAccess>}
+          />
+          <Route
+            path="/counts"
+            element={<RequireAppAccess app="inventory"><StockCounts /></RequireAppAccess>}
+          />
+          <Route
+            path="/waste"
+            element={<RequireAppAccess app="inventory"><Waste /></RequireAppAccess>}
+          />
           <Route
             path="/settings"
             element={

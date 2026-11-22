@@ -81,7 +81,9 @@ begin
 
   insert into pos_items (company_id, location_id, name, category, item_type,
                          base_unit, purchase_unit, pack_size, prep_yield_qty)
-  values (v_company, v_loc, 'Espresso', 'Prep', 'sub_assembly', 'ml', 'Batch', 36, 36)
+  -- Not 'Espresso': the catalog seed owns that name now, and a fixture that
+  -- collides with seeded data makes the test about the seed, not the schema.
+  values (v_company, v_loc, 'Test Espresso', 'Prep', 'sub_assembly', 'ml', 'Batch', 36, 36)
   returning id into v_esp;
 
   insert into pos_recipe_lines (company_id, owner_id, owner_type, item_id, qty)
@@ -103,7 +105,9 @@ begin
     'zero-quantity recipe line is rejected');
 
   insert into pos_products (company_id, name, category)
-  values (v_company, 'Iced Latte', 'Espresso') returning id into v_prod;
+  -- Prefixed so the fixtures cannot collide with the seeded catalog; a test
+  -- that trips over real data is testing the seed, not the schema.
+  values (v_company, 'Test Iced Latte', 'Espresso') returning id into v_prod;
 
   insert into pos_product_variants (company_id, product_id, size, selling_price, target_margin_pct)
   values (v_company, v_prod, '16oz', 16000, 70) returning id into v_variant;
@@ -232,4 +236,64 @@ begin
     'recipe lines are cleaned up when their variant is deleted');
 
   raise notice '--- all schema tests passed ---';
+end $$;
+
+-- =============================================================================
+-- App access (layer 1). These run as real `authenticated` users, not as the
+-- table owner, because RLS does not apply to the owner — a test that passes as
+-- postgres proves nothing about what a cashier can see.
+-- =============================================================================
+
+do $$
+declare
+  v_company uuid := '0e573ed8-ebe8-4e32-88aa-87100e838dab';
+  v_sales   uuid := gen_random_uuid();
+  v_stock   uuid := gen_random_uuid();
+begin
+  -- A viewer (sales only) and a user (pos only), per the seeded grants.
+  insert into auth.users (id, email) values (v_sales, 'viewer@test'), (v_stock, 'cashier@test');
+  insert into public.profiles (id, company_id, role, role_id)
+  values
+    (v_sales, v_company, 'viewer', (select id from roles where name='viewer')),
+    (v_stock, v_company, 'user',   (select id from roles where name='user'));
+
+  perform pg_temp.check_eq(
+    (select public.my_app_access(v_company) from (select set_config('request.jwt.claim.sub', v_sales::text, true)) _),
+    array['sales'], 'a viewer resolves to sales only');
+
+  perform pg_temp.check_eq(
+    (select public.my_app_access(v_company) from (select set_config('request.jwt.claim.sub', v_stock::text, true)) _),
+    array['pos'], 'a regular user resolves to pos only');
+
+  perform set_config('request.jwt.claim.sub', gen_random_uuid()::text, true);
+  perform pg_temp.check_eq(
+    public.my_app_access(v_company), '{}'::text[],
+    'someone with no profile in the company gets nothing');
+end $$;
+
+-- Now the part that counts: does RLS actually stop the read?
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on all tables in schema public to authenticated;
+
+do $$
+declare
+  v_company uuid := '0e573ed8-ebe8-4e32-88aa-87100e838dab';
+  v_viewer  uuid;
+  v_items   integer;
+  v_sales_n integer;
+begin
+  select id into v_viewer from auth.users where email = 'viewer@test';
+
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub', v_viewer::text, true);
+
+  select count(*) into v_items   from public.pos_items;
+  select count(*) into v_sales_n from public.pos_products;
+
+  reset role;
+
+  -- The viewer has `sales`, so the catalog is visible but stock is not.
+  perform pg_temp.check_eq(v_items, 0, 'a sales-only user sees no inventory items');
+  perform pg_temp.check_eq((v_sales_n > 0), true, 'a sales-only user still sees the catalog');
+  raise notice '--- app access tests passed ---';
 end $$;

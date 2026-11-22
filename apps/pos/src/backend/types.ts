@@ -13,7 +13,7 @@ import type {
  * it without the screens or stores changing.
  */
 export interface PosBackend {
-  /** 'demo' keeps everything in memory: nothing survives a reload. */
+  /** 'demo' runs on the seed catalog; only the open shift and its sales persist, on this device. */
   readonly mode: 'demo' | 'live';
 
   loadShop(): Promise<{ shop: Shop; catalog: PosCatalog }>;

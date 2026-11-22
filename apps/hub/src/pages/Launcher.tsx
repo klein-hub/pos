@@ -33,7 +33,7 @@ import {
   Users,
   type LucideIcon,
 } from 'lucide-react';
-import { appHref, withHandoff, type LaunchableApp } from '@digita/core';
+import { appHref, filterAppsByAccess, withHandoff, type LaunchableApp } from '@digita/core';
 import { apps } from '../lib/apps';
 import { useAuthStore } from '../store/authStore';
 
@@ -49,21 +49,30 @@ const ICONS: Record<string, LucideIcon> = {
 };
 
 export function Launcher() {
-  const { displayName, isSuperAdmin, signOut, handoff } = useAuthStore();
+  const {
+    displayName, isSuperAdmin, signOut, handoff,
+    access, activeCompanyId, setActiveCompany, grantedApps, accessLoading,
+  } = useAuthStore();
   const [query, setQuery] = useState('');
+  const granted = grantedApps();
+  const company = access.find((c) => c.companyId === activeCompanyId);
 
   const cardBg = useColorModeValue('white', 'gray.800');
   const muted = useColorModeValue('gray.500', 'whiteAlpha.600');
   const headerBg = useColorModeValue('whiteAlpha.900', 'blackAlpha.600');
   const border = useColorModeValue('blackAlpha.100', 'whiteAlpha.100');
 
+  // Only what this user may open, then the search filter on top. Hiding a
+  // tile protects nothing — the URL still exists — but showing one that leads
+  // to a refusal is worse than not showing it.
   const visible = useMemo(() => {
+    const allowed = filterAppsByAccess(apps, granted);
     const q = query.trim().toLowerCase();
-    if (!q) return apps;
-    return apps.filter(
+    if (!q) return allowed;
+    return allowed.filter(
       (a) => a.name.toLowerCase().includes(q) || a.summary.toLowerCase().includes(q),
     );
-  }, [query]);
+  }, [query, granted]);
 
   /**
    * Opening an app carries the current session with it, so a user signed in
@@ -100,6 +109,27 @@ export function Launcher() {
           </Text>
         </Flex>
 
+        <Flex align="center" gap={3}>
+        {access.length > 1 && (
+          <Menu placement="bottom-end">
+            <MenuButton as={Box} cursor="pointer">
+              <Flex align="center" gap={1.5}>
+                <Text fontSize="sm" color={muted}>{company?.companyName ?? 'Company'}</Text>
+                <ChevronDown size={13} />
+              </Flex>
+            </MenuButton>
+            <MenuList>
+              {access.map((c) => (
+                <MenuItem key={c.companyId} onClick={() => setActiveCompany(c.companyId)}>
+                  <Box>
+                    <Text fontSize="sm">{c.companyName}</Text>
+                    <Text fontSize="xs" color={muted}>{c.apps.length} app{c.apps.length === 1 ? '' : 's'}</Text>
+                  </Box>
+                </MenuItem>
+              ))}
+            </MenuList>
+          </Menu>
+        )}
         <Menu placement="bottom-end">
           <MenuButton>
             <Flex align="center" gap={2}>
@@ -140,6 +170,7 @@ export function Launcher() {
             </MenuItem>
           </MenuList>
         </Menu>
+        </Flex>
       </Flex>
 
       <Container maxW="1100px" py={{ base: 6, md: 10 }}>
@@ -208,10 +239,19 @@ export function Launcher() {
           })}
         </SimpleGrid>
 
-        {visible.length === 0 && (
-          <Text textAlign="center" color={muted} fontSize="sm" py={10}>
-            No app matches “{query}”.
-          </Text>
+        {visible.length === 0 && !accessLoading && (
+          <Box textAlign="center" py={10}>
+            <Text color={muted} fontSize="sm">
+              {query
+                ? `No app matches “${query}”.`
+                : 'You do not have access to any app yet.'}
+            </Text>
+            {!query && (
+              <Text color={muted} fontSize="xs" mt={1}>
+                Ask an administrator to grant you one.
+              </Text>
+            )}
+          </Box>
         )}
 
         <Text textAlign="center" fontSize="xs" color={muted} mt={12}>

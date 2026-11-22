@@ -27,6 +27,7 @@ export * from './data/catalogRepository.js';
 // The app launcher: which apps exist, and carrying a session between them
 export * from './apps/registry.js';
 export * from './apps/handoff.js';
+export * from './apps/access.js';
 
 // Utilities
 export * from './utils/money.js';

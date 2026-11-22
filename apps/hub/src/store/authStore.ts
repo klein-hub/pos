@@ -1,6 +1,12 @@
 import { create } from 'zustand';
 import type { Session, User } from '@supabase/supabase-js';
-import { canSwitchDataMode, type HandoffSession } from '@digita/core';
+import {
+  canSwitchDataMode,
+  fetchAppAccessSummary,
+  type AppId,
+  type CompanyAccess,
+  type HandoffSession,
+} from '@digita/core';
 import { supabase } from '../lib/supabase';
 
 interface AuthState {
@@ -8,6 +14,11 @@ interface AuthState {
   session: Session | null;
   displayName: string | null;
   isSuperAdmin: boolean;
+  /** Every company the user belongs to, with the apps they may open in it. */
+  access: CompanyAccess[];
+  /** The company whose tiles are on screen. */
+  activeCompanyId: string | null;
+  accessLoading: boolean;
   loading: boolean;
   initialised: boolean;
   error: string | null;
@@ -17,6 +28,10 @@ interface AuthState {
   signOut: () => Promise<void>;
   /** The tokens to hand to an app being opened, or null when signed out. */
   handoff: () => HandoffSession | null;
+  loadAccess: () => Promise<void>;
+  setActiveCompany: (companyId: string) => void;
+  /** Apps the user may open in the active company. */
+  grantedApps: () => AppId[];
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -24,6 +39,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   session: null,
   displayName: null,
   isSuperAdmin: false,
+  access: [],
+  activeCompanyId: null,
+  accessLoading: false,
   loading: false,
   initialised: false,
   error: null,
@@ -60,6 +78,35 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ user: null, session: null, displayName: null, isSuperAdmin: false });
   },
 
+  loadAccess: async () => {
+    set({ accessLoading: true });
+    try {
+      const access = await fetchAppAccessSummary(supabase);
+      set({
+        access,
+        // Stay on the company already chosen if it is still reachable;
+        // otherwise fall back to the first, so a user who loses access to one
+        // company is not left staring at an empty launcher.
+        activeCompanyId:
+          access.find((c) => c.companyId === get().activeCompanyId)?.companyId ??
+          access[0]?.companyId ??
+          null,
+        error: null,
+      });
+    } catch (error) {
+      set({ error: (error as Error).message });
+    } finally {
+      set({ accessLoading: false });
+    }
+  },
+
+  setActiveCompany: (companyId) => set({ activeCompanyId: companyId }),
+
+  grantedApps: () => {
+    const { access, activeCompanyId } = get();
+    return access.find((c) => c.companyId === activeCompanyId)?.apps ?? [];
+  },
+
   handoff: () => {
     const { session } = get();
     if (!session?.access_token || !session?.refresh_token) return null;
@@ -71,7 +118,7 @@ type Setter = (partial: Partial<AuthState>) => void;
 
 function hydrate(set: Setter, session: Session | null) {
   if (!session) {
-    set({ user: null, session: null, displayName: null, isSuperAdmin: false });
+    set({ user: null, session: null, displayName: null, isSuperAdmin: false, access: [] });
     return;
   }
   const meta = session.user.user_metadata as Record<string, unknown> | undefined;

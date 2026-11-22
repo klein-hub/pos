@@ -37,6 +37,8 @@ interface DataModeState {
   /** Set when a connection failure, rather than a choice, put us in local mode. */
   fellBackOffline: boolean;
 
+  /** The company the current mode reads from; null in offline sample mode. */
+  companyIdForMode: () => string | null;
   /** Called once auth has settled. Picks the starting mode and loads it. */
   start: () => Promise<void>;
   setMode: (mode: DataMode) => Promise<void>;
@@ -88,6 +90,11 @@ export const useDataModeStore = create<DataModeState>((set, get) => ({
   canSwitch: false,
   hasLoadedRemote: false,
   fellBackOffline: false,
+
+  companyIdForMode: () => {
+    const { mode } = get();
+    return mode === 'local' ? null : companyIdFor(mode);
+  },
 
   start: async () => {
     const { user, activeCompanyId } = useAuthStore.getState();

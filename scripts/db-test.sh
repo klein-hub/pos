@@ -66,8 +66,18 @@ printf '    items: %s   locations: %s\n' \
   "$(run -Atc 'select count(*) from pos_locations;')"
 
 echo "==> schema behaviour"
-psql -d "$DB" -f "$ROOT/scripts/test-schema.sql" 2>&1 \
-  | sed -n 's/^psql:[^:]*:[0-9]*: NOTICE:  /    /p'
+# Exit status, not just the NOTICE lines. Piping psql straight into sed
+# discarded its status, so a failing assertion printed nothing and the script
+# still reported success — which it did, for one commit.
+if psql -d "$DB" -v ON_ERROR_STOP=1 -f "$ROOT/scripts/test-schema.sql" >"$PGTMP/schema.log" 2>&1; then
+  sed -n 's/^psql:[^:]*:[0-9]*: NOTICE:  /    /p' "$PGTMP/schema.log"
+else
+  sed -n 's/^psql:[^:]*:[0-9]*: NOTICE:  /    /p' "$PGTMP/schema.log"
+  echo
+  echo "    SCHEMA TESTS FAILED:"
+  grep -E "ERROR|DETAIL|CONTEXT" "$PGTMP/schema.log" | sed 's/^/      /' | head -12
+  exit 1
+fi
 
 echo
 echo "All database tests passed."
