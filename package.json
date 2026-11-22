@@ -10,12 +10,13 @@
   "scripts": {
     "dev:admin": "pnpm --filter @digita/admin dev",
     "dev:pos": "pnpm --filter @digita/pos start",
-    "build": "pnpm --filter @digita/admin build",
+    "build": "pnpm --filter @digita/admin --filter @digita/hub --filter @digita/payroll build",
     "test": "pnpm --filter @digita/core test",
     "typecheck": "pnpm -r typecheck",
     "lint": "pnpm -r lint",
     "dev:hub": "pnpm --filter @digita/hub dev",
-    "dev:all": "pnpm --parallel --filter @digita/hub --filter @digita/admin dev"
+    "dev:all": "pnpm --parallel --filter @digita/hub --filter @digita/admin --filter @digita/payroll dev",
+    "dev:payroll": "pnpm --filter @digita/payroll dev"
   },
   "devDependencies": {
     "typescript": "^5.5.3"

@@ -1,5 +1,5 @@
 {
-  "name": "vite-react-typescript-starter",
+  "name": "@digita/payroll",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -11,7 +11,8 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "jest"
+    "test": "jest",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@chakra-ui/react": "^2.8.2",
@@ -30,7 +31,8 @@
     "react-hot-toast": "^2.4.1",
     "react-router-dom": "^6.22.2",
     "recharts": "^3.8.1",
-    "zustand": "^4.5.1"
+    "zustand": "^4.5.1",
+    "@digita/core": "workspace:*"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",

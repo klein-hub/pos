@@ -13,14 +13,13 @@ against plausible alternatives.
 ```
 apps/hub        Vite + React — the app launcher (:5175). Signs in, links out.
 apps/admin      Vite + React + Chakra — Sales + Inventory + Admin (:5174)
+apps/payroll    Vite + React + Chakra — payroll (:5173), plus an Express
+                admin API on :3000 for the two service-role operations
 apps/pos        Expo / React Native — the till (:8081)
 packages/core   Shared types, Supabase client factory, and the costing engine
 supabase/       Forward-only migrations against the shared database
 scripts/        DB test harness, seed generation, dev account
 ```
-
-The payroll app lives in a separate repo (`../payroll`, :5173) and is reached
-from the launcher like the rest.
 
 ### Signing in once
 
