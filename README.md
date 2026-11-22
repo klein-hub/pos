@@ -60,5 +60,12 @@ pnpm test
 
 ## Status
 
-Phases 0–5 and 7 are done: 142 tests, the full schema and catalog live in
-dashboard rendering against demo fixtures. Phase 1 is the Supabase schema.
+Phases 0–5 and 7 are done. 142 tests; schema, RLS and the full catalog applied
+to the shared Supabase database for both the live and demo companies.
+
+The admin app reads its catalog from a switchable source — live, demo, or the
+built-in offline sample — chosen by a super admin. Everything else (stock,
+sales, counts) is still in memory; `apps/pos` runs on a demo backend.
+
+Checks worth running: `./scripts/db-test.sh`, `./scripts/check-catalog-parity.sh`
+and `./scripts/check-harness-drift.sh`.
