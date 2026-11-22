@@ -99,6 +99,8 @@ export interface StatutoryDiscountInput {
 }
 
 export interface StatutoryDiscountResult {
+  /** VAT-inclusive share of the sale the discount covers (the cardholder's pax share). */
+  qualifyingGross: Centavos;
   /** VAT removed because the sale is exempt for this customer. */
   vatExempt: Centavos;
   /** 20% of the VAT-exclusive base. */
@@ -133,6 +135,7 @@ export function statutoryDiscount(input: StatutoryDiscountInput): StatutoryDisco
   const payable = gross - vat - discount;
 
   return {
+    qualifyingGross,
     vatExempt: vat,
     discount,
     payable,

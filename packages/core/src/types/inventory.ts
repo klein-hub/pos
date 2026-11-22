@@ -73,6 +73,13 @@ export type MovementReason =
   | 'prep_consume'
   | 'prep_produce';
 
+/**
+ * What kind of loss a `waste` movement records, so the report can tell
+ * spoilage (a buying problem) from spills (a training problem). Staff drinks
+ * are not waste — they have their own ledger reason, `staff`.
+ */
+export type WasteKind = 'spill' | 'spoiled' | 'expired' | 'remake' | 'other';
+
 /** Append-only. on-hand is derived from this ledger, never typed in. */
 export interface StockMovement {
   id: string;
@@ -81,10 +88,63 @@ export interface StockMovement {
   reason: MovementReason;
   /** Signed, in base units. Negative consumes. */
   qty: number;
+  /** Per base unit — the batch's cost — so a movement's value is qty × costAtTime. */
   costAtTime: Pesos;
+  /** `waste` only. */
+  wasteKind?: WasteKind;
   referenceId?: string;
+  note?: string;
   actorId: string;
   occurredAt: string;
+}
+
+export type PurchaseOrderStatus = 'draft' | 'ordered' | 'partial' | 'received' | 'cancelled';
+
+export interface PurchaseOrder {
+  id: string;
+  supplierId?: string;
+  status: PurchaseOrderStatus;
+  deliveryFee: Pesos;
+  orderedAt?: string;
+  expectedAt?: string;
+  receivedAt?: string;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface PurchaseOrderLine {
+  id: string;
+  purchaseOrderId: string;
+  itemId: string;
+  qtyPurchaseUnits: number;
+  /** Expected price for the whole line, before delivery. */
+  linePrice: Pesos;
+}
+
+export type StockCountStatus = 'open' | 'completed' | 'cancelled';
+
+export interface StockCount {
+  id: string;
+  status: StockCountStatus;
+  startedAt: string;
+  completedAt?: string;
+  note?: string;
+}
+
+export interface StockCountLine {
+  id: string;
+  countId: string;
+  itemId: string;
+  /** What the ledger said was on hand when the count was posted. */
+  expectedQty: number;
+  countedQty: number;
+  /** Signed. Negative is shrinkage. */
+  varianceValue: Pesos;
+  /**
+   * The item had never been stocked, so the count set its opening balance.
+   * Reported apart from variance — a first count is not "found" stock.
+   */
+  isOpening: boolean;
 }
 
 export interface Supplier {

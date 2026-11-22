@@ -5,9 +5,13 @@ import { Toaster } from 'react-hot-toast';
 import { AdminLayout } from './layouts/AdminLayout';
 import { ComingSoon } from './pages/ComingSoon';
 import { Dashboard } from './pages/Dashboard';
+import { Inventory } from './pages/Inventory';
 import { Login } from './pages/Login';
 import { MenuMargins } from './pages/MenuMargins';
+import { Purchasing } from './pages/Purchasing';
 import { Recipes } from './pages/Recipes';
+import { StockCounts } from './pages/StockCounts';
+import { Waste } from './pages/Waste';
 import { useAuthStore } from './store/authStore';
 
 function RequireAuth({ children }: { children: JSX.Element }) {
@@ -43,47 +47,11 @@ export default function App() {
         >
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/menu" element={<MenuMargins />} />
-          <Route
-            path="/inventory"
-            element={
-              <ComingSoon
-                title="Inventory"
-                phase="Phase 2 — items, suppliers, batches, Receive Stock"
-                blurb="Item master with per-gram costs, sealed and open container tracking, batch expiry and movement history."
-              />
-            }
-          />
-          <Route
-            path="/purchasing"
-            element={
-              <ComingSoon
-                title="Purchasing"
-                phase="Phase 8 — purchase orders and reorder intelligence"
-                blurb="Order suggestions from measured velocity and supplier lead time, rounded to whole purchase units."
-              />
-            }
-          />
+          <Route path="/inventory" element={<Inventory />} />
+          <Route path="/purchasing" element={<Purchasing />} />
           <Route path="/recipes" element={<Recipes />} />
-          <Route
-            path="/counts"
-            element={
-              <ComingSoon
-                title="Stock Counts"
-                phase="Phase 7 — counts and variance"
-                blurb="Guided physical counts with theoretical-versus-actual variance, so over-pouring and unlogged waste surface."
-              />
-            }
-          />
-          <Route
-            path="/waste"
-            element={
-              <ComingSoon
-                title="Waste"
-                phase="Phase 7 — wastage log and reporting"
-                blurb="Spillage, spoilage, remakes and staff drinks tracked separately, each costed at the batch price."
-              />
-            }
-          />
+          <Route path="/counts" element={<StockCounts />} />
+          <Route path="/waste" element={<Waste />} />
           <Route
             path="/settings"
             element={

@@ -1,13 +1,16 @@
 import { create } from 'zustand';
-import type {
-  Centavos,
-  CostingContext,
-  InventoryItem,
-  Product,
-  ProductVariant,
-  RecipeLine,
+import {
+  buildSeedCatalog,
+  resolveUnitCost,
+  type Centavos,
+  type CostingContext,
+  type InventoryItem,
+  type Product,
+  type ProductVariant,
+  type RecipeLine,
+  type StockBatch,
 } from '@digita/core';
-import { buildSeedCatalog, seedVolumes } from '../data/seedCatalog';
+import { seedVolumes } from '../data/seedVolumes';
 
 interface CatalogState {
   items: InventoryItem[];
@@ -25,8 +28,17 @@ interface CatalogState {
   setLineQty: (lineId: string, qty: number) => void;
   addLine: (ownerId: string, ownerType: RecipeLine['ownerType'], itemId: string) => void;
   removeLine: (lineId: string) => void;
+  /** Stocking settings only — par, reorder point, supplier, shelf life, yield. */
+  updateItem: (itemId: string, patch: ItemSettings) => void;
   reset: () => void;
 }
+
+export type ItemSettings = Partial<
+  Pick<
+    InventoryItem,
+    'supplierId' | 'reorderPoint' | 'parLevel' | 'shelfLifeDays' | 'yieldPct' | 'isSeasonal'
+  >
+>;
 
 const seed = buildSeedCatalog();
 
@@ -79,6 +91,11 @@ export const useCatalogStore = create<CatalogState>((set) => ({
   removeLine: (lineId) =>
     set((state) => ({ recipeLines: state.recipeLines.filter((l) => l.id !== lineId) })),
 
+  updateItem: (itemId, patch) =>
+    set((state) => ({
+      items: state.items.map((i) => (i.id === itemId ? { ...i, ...patch } : i)),
+    })),
+
   reset: () => set({ ...buildSeedCatalog(), volumes: seedVolumes }),
 }));
 
@@ -87,17 +104,23 @@ function clamp(v: number, min: number, max: number): number {
 }
 
 /**
- * Adapts the store to the shape the costing engine expects. Built fresh on each
- * render so an edited quantity is reflected immediately — the roll-up is cheap
- * (tens of lines) and correctness here matters more than memoisation.
+ * Adapts the catalog to the shape the costing engine expects. Item cost comes
+ * from received batches once there are any, falling back to the price list —
+ * the same order as the pos_item_stock view — so receiving a delivery at a new
+ * price moves every margin that uses it.
  */
-export function useCostingContext(): CostingContext {
-  const { items, unitCosts, recipeLines } = useCatalogStore();
-
+export function buildCostingContext(
+  catalog: Pick<CatalogState, 'items' | 'unitCosts' | 'recipeLines'>,
+  batches: readonly StockBatch[],
+): CostingContext {
   return {
-    getItem: (id) => items.find((i) => i.id === id),
-    getItemUnitCost: (id) => unitCosts[id],
+    getItem: (id) => catalog.items.find((i) => i.id === id),
+    getItemUnitCost: (id) =>
+      resolveUnitCost(
+        batches.filter((b) => b.itemId === id),
+        catalog.unitCosts[id],
+      ).unitCost,
     getDosingUnits: () => [],
-    getRecipeLines: (ownerId) => recipeLines.filter((l) => l.ownerId === ownerId),
+    getRecipeLines: (ownerId) => catalog.recipeLines.filter((l) => l.ownerId === ownerId),
   };
 }

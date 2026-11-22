@@ -3,8 +3,10 @@ import {
   classifyMovement,
   dailyVelocity,
   daysOfCover,
+  measuredVelocity,
   suggestParLevel,
   suggestReorder,
+  type StockMovement,
 } from '../src/index.js';
 
 /** Matcha Powder, straight off the spreadsheet: 1kg packs, 1 on hand, par 12. */
@@ -131,5 +133,64 @@ describe('par level suggestion', () => {
     // a stockout. The old sheet capped beans at MAX 10 with 10 on hand.
     expect(suggestParLevel(1000, 20, 10)).toBe(30000);
     expect(suggestParLevel(1000, 20, 10, 28)).toBe(21000);
+  });
+});
+
+describe('measured velocity', () => {
+  const now = new Date('2026-11-29T12:00:00Z');
+  const move = (over: Partial<StockMovement> & Pick<StockMovement, 'qty' | 'reason' | 'occurredAt'>): StockMovement => ({
+    id: `${over.reason}-${over.occurredAt}`,
+    itemId: 'milk',
+    costAtTime: 0.072,
+    actorId: 'owner',
+    ...over,
+  });
+
+  it('measures every way stock leaves, over the trailing four weeks', () => {
+    const movements = [
+      move({ reason: 'receipt', qty: 20000, occurredAt: '2026-10-01T08:00:00Z' }),
+      move({ reason: 'sale', qty: -14000, occurredAt: '2026-11-10T08:00:00Z' }),
+      move({ reason: 'waste', qty: -500, occurredAt: '2026-11-11T08:00:00Z' }),
+      move({ reason: 'staff', qty: -500, occurredAt: '2026-11-12T08:00:00Z' }),
+      move({ reason: 'count_adjustment', qty: -1000, occurredAt: '2026-11-20T08:00:00Z' }),
+      // Outside the window, and found stock — neither is consumption.
+      move({ reason: 'sale', qty: -9000, occurredAt: '2026-10-20T08:00:00Z' }),
+      move({ reason: 'count_adjustment', qty: 300, occurredAt: '2026-11-21T08:00:00Z' }),
+    ];
+    const v = measuredVelocity(movements, 'milk', now);
+    expect(v.windowDays).toBe(28);
+    expect(v.consumed).toBe(16000);
+    expect(v.perDay).toBeCloseTo(16000 / 28, 6);
+  });
+
+  it('measures a young ledger over its actual age, not the full window', () => {
+    const v = measuredVelocity(
+      [
+        move({ reason: 'receipt', qty: 5000, occurredAt: '2026-11-15T12:00:00Z' }),
+        move({ reason: 'sale', qty: -2800, occurredAt: '2026-11-20T12:00:00Z' }),
+      ],
+      'milk',
+      now,
+    );
+    // Two weeks of history: dividing by 28 would halve the real rate.
+    expect(v.windowDays).toBe(14);
+    expect(v.perDay).toBeCloseTo(200, 6);
+  });
+
+  it('does not let one day of history pass for a trend', () => {
+    const v = measuredVelocity(
+      [
+        move({ reason: 'receipt', qty: 5000, occurredAt: '2026-11-29T08:00:00Z' }),
+        move({ reason: 'waste', qty: -700, occurredAt: '2026-11-29T09:00:00Z' }),
+      ],
+      'milk',
+      now,
+    );
+    expect(v.windowDays).toBe(7);
+    expect(v.perDay).toBeCloseTo(100, 6);
+  });
+
+  it('reports nothing measured for an item with no ledger at all', () => {
+    expect(measuredVelocity([], 'milk', now)).toEqual({ perDay: 0, consumed: 0, windowDays: 0 });
   });
 });

@@ -8,13 +8,17 @@ export * from './types/sales.js';
 // a margin shown on the tablet and a margin shown on the dashboard cannot disagree.
 export * from './costing/units.js';
 export * from './costing/batches.js';
+export * from './costing/ledger.js';
 export * from './costing/recipe.js';
 export * from './costing/pricing.js';
 export * from './costing/reorder.js';
 export * from './costing/menu.js';
+export * from './costing/checkout.js';
 
-// Opening price list transcribed from the shop's costing sheets
+// Opening price list transcribed from the shop's costing sheets, and the
+// starter catalog both apps run on until they read from Supabase
 export * from './seed/openingCosts.js';
+export * from './seed/catalog.js';
 
 // Utilities
 export * from './utils/money.js';

@@ -25,6 +25,45 @@ export function formatPeso(centavos: Centavos): string {
   return `${sign}₱${whole}.${frac}`;
 }
 
+/**
+ * Split an integer centavo amount across weights so the parts sum to the whole
+ * exactly. Each part is floored, then the leftover centavos go to the largest
+ * remainders — proportional rounding on its own drifts by a centavo or two,
+ * and a receipt whose line VAT does not add up to its VAT line is a finding.
+ */
+export function allocateCentavos(total: Centavos, weights: readonly number[]): Centavos[] {
+  if (!Number.isInteger(total)) {
+    throw new Error(`Can only allocate whole centavos, got ${total}`);
+  }
+  if (weights.length === 0) return [];
+  if (weights.some((w) => !(w >= 0))) {
+    throw new Error('Allocation weights must be non-negative numbers');
+  }
+
+  const sum = weights.reduce((a, b) => a + b, 0);
+  // Nothing to weigh by (every line free): split evenly rather than dump it all on one.
+  const basis = sum > 0 ? weights : weights.map(() => 1);
+  const basisSum = sum > 0 ? sum : weights.length;
+
+  const sign = total < 0 ? -1 : 1;
+  const abs = Math.abs(total);
+  const exact = basis.map((w) => (abs * w) / basisSum);
+  const parts = exact.map(Math.floor);
+  let leftover = abs - parts.reduce((a, b) => a + b, 0);
+
+  // Ties go to the earlier line, so the same cart always allocates the same way.
+  const order = exact
+    .map((e, i) => ({ i, rem: e - Math.floor(e) }))
+    .sort((a, b) => b.rem - a.rem || a.i - b.i);
+  for (const { i } of order) {
+    if (leftover <= 0) break;
+    parts[i] = (parts[i] ?? 0) + 1;
+    leftover--;
+  }
+
+  return parts.map((p) => sign * p);
+}
+
 /** For per-gram costs, where centavo precision is not enough to be meaningful. */
 export function formatUnitCost(pesos: Pesos, unit: string): string {
   return `₱${roundUnitCost(pesos).toFixed(4)}/${unit}`;

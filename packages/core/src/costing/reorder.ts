@@ -1,4 +1,4 @@
-import type { InventoryItem } from '../types/inventory.js';
+import type { InventoryItem, MovementReason, StockMovement } from '../types/inventory.js';
 import { CostingError } from './batches.js';
 
 /**
@@ -34,6 +34,68 @@ export function classifyMovement(
   if (daysPerPurchaseUnit <= 10) return 'fast';
   if (daysPerPurchaseUnit <= 30) return 'moderate';
   return 'slow';
+}
+
+/** Trailing window for measured velocity. Four weeks smooths weekday/weekend swing. */
+export const VELOCITY_WINDOW_DAYS = 28;
+
+/** Shortest history treated as a rate. One busy morning is not a trend. */
+export const MIN_VELOCITY_WINDOW_DAYS = 7;
+
+/**
+ * Ways stock leaves that need replacing. A negative count adjustment is
+ * consumption nobody logged; it still has to be bought again. Receipts, prep
+ * output and found stock are inflows, and transfers move stock rather than use it.
+ */
+const CONSUMPTION_REASONS: ReadonlySet<MovementReason> = new Set([
+  'sale',
+  'waste',
+  'staff',
+  'prep_consume',
+  'count_adjustment',
+]);
+
+export interface MeasuredVelocity {
+  /** Base units consumed per day. */
+  perDay: number;
+  /** Base units consumed within the window. */
+  consumed: number;
+  /** Days actually measured over — shorter than the window for a young ledger. 0 when nothing is recorded. */
+  windowDays: number;
+}
+
+/**
+ * Velocity read off the ledger — the measurement that replaces the
+ * spreadsheet's hand-kept FAST/SLOW column.
+ *
+ * A ledger younger than the window is measured over its actual age, because
+ * dividing two weeks of usage by 28 would halve the rate and under-order. Below
+ * MIN_VELOCITY_WINDOW_DAYS the age is floored, so a single day's spill cannot
+ * pass for a daily rate.
+ */
+export function measuredVelocity(
+  movements: readonly StockMovement[],
+  itemId: string,
+  now: Date = new Date(),
+  windowDays: number = VELOCITY_WINDOW_DAYS,
+): MeasuredVelocity {
+  const own = movements.filter((m) => m.itemId === itemId);
+  if (own.length === 0) return { perDay: 0, consumed: 0, windowDays: 0 };
+
+  const firstAt = Math.min(...own.map((m) => Date.parse(m.occurredAt)));
+  const ageDays = Math.ceil((now.getTime() - firstAt) / 86_400_000);
+  const measuredDays = Math.min(windowDays, Math.max(MIN_VELOCITY_WINDOW_DAYS, ageDays));
+  const since = now.getTime() - measuredDays * 86_400_000;
+
+  const consumed = own
+    .filter((m) => m.qty < 0 && CONSUMPTION_REASONS.has(m.reason) && Date.parse(m.occurredAt) >= since)
+    .reduce((sum, m) => sum - m.qty, 0);
+
+  return {
+    perDay: dailyVelocity({ consumedBaseUnits: consumed, windowDays: measuredDays }),
+    consumed,
+    windowDays: measuredDays,
+  };
 }
 
 /** Days until stock runs out at current velocity. Infinity when nothing moves. */

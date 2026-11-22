@@ -18,7 +18,12 @@ export interface LandedCostInput {
   linePrice: Pesos;
   /** This line's share of the order's delivery fee, in pesos. */
   allocatedDeliveryFee?: Pesos;
-  /** Usable fraction, 0 < yieldPct <= 1. */
+  /**
+   * Usable fraction, 0 < yieldPct <= 1. Gives cost per *usable* unit, for
+   * display only. Never pass it when costing a stock batch: recipeCost already
+   * divides by yield when it draws from stock, so a yield-adjusted batch cost
+   * would count the loss twice. See receiveStock.
+   */
   yieldPct?: number;
 }
 
@@ -85,6 +90,33 @@ export function weightedAverageUnitCost(batches: readonly StockBatch[]): Pesos {
   return roundUnitCost(value / qty);
 }
 
+/**
+ * Where an item's cost figure came from, so the UI can say whether a number
+ * was measured or merely listed. Same order as pos_item_stock.cost_source.
+ */
+export type CostSource = 'batch' | 'last_batch' | 'standard' | 'none';
+
+/**
+ * The cost recipes should use for an item, falling back the way the
+ * pos_item_stock view does: live stock, then the last batch ever received,
+ * then the price list.
+ */
+export function resolveUnitCost(
+  batches: readonly StockBatch[],
+  standardUnitCost?: Pesos,
+): { unitCost: Pesos | undefined; source: CostSource } {
+  if (batches.some((b) => b.qtyRemaining > 0)) {
+    return { unitCost: weightedAverageUnitCost(batches), source: 'batch' };
+  }
+  if (batches.length > 0) {
+    return { unitCost: weightedAverageUnitCost(batches), source: 'last_batch' };
+  }
+  if (standardUnitCost !== undefined) {
+    return { unitCost: roundUnitCost(standardUnitCost), source: 'standard' };
+  }
+  return { unitCost: undefined, source: 'none' };
+}
+
 export interface BatchAllocation {
   batchId: string;
   qty: number;
@@ -105,17 +137,17 @@ export interface ConsumptionPlan {
  * since a dated batch always has more urgency than an undated one.
  */
 export function fefoOrder(batches: readonly StockBatch[]): StockBatch[] {
-  return [...batches]
-    .filter((b) => b.qtyRemaining > 0)
-    .sort((a, b) => {
-      if (a.isOpen !== b.isOpen) return a.isOpen ? -1 : 1;
-      if (a.expiryDate && b.expiryDate && a.expiryDate !== b.expiryDate) {
-        return a.expiryDate.localeCompare(b.expiryDate);
-      }
-      if (a.expiryDate && !b.expiryDate) return -1;
-      if (!a.expiryDate && b.expiryDate) return 1;
-      return a.receivedAt.localeCompare(b.receivedAt);
-    });
+  return [...batches].filter((b) => b.qtyRemaining > 0).sort(compareFefo);
+}
+
+export function compareFefo(a: StockBatch, b: StockBatch): number {
+  if (a.isOpen !== b.isOpen) return a.isOpen ? -1 : 1;
+  if (a.expiryDate && b.expiryDate && a.expiryDate !== b.expiryDate) {
+    return a.expiryDate.localeCompare(b.expiryDate);
+  }
+  if (a.expiryDate && !b.expiryDate) return -1;
+  if (!a.expiryDate && b.expiryDate) return 1;
+  return a.receivedAt.localeCompare(b.receivedAt);
 }
 
 /**

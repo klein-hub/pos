@@ -9,6 +9,15 @@ import { doseToBaseQty } from './units.js';
 export const MAX_RECIPE_DEPTH = 8;
 
 /**
+ * The yield actually applied to an item: out-of-range values are treated as 1
+ * rather than allowed to inflate (or zero-divide) a draw. Costing and stock
+ * deduction must apply the same rule or COGS and the ledger disagree.
+ */
+export function usableYield(yieldPct: number): number {
+  return yieldPct > 0 && yieldPct <= 1 ? yieldPct : 1;
+}
+
+/**
  * Everything the roll-up needs, supplied by the caller. Keeping this an
  * interface is what lets the identical engine run against live Supabase data
  * on the POS, against a what-if scenario in the admin price simulator, and
@@ -106,7 +115,7 @@ function rollUp(
     }
 
     // Yield loss means you must draw more from stock than the recipe calls for.
-    const yieldPct = item.yieldPct > 0 && item.yieldPct <= 1 ? item.yieldPct : 1;
+    const yieldPct = usableYield(item.yieldPct);
     if (yieldPct !== item.yieldPct) {
       warnings.push(`${item.name}: yield ${item.yieldPct} is out of range, treated as 1.`);
     }

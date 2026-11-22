@@ -43,7 +43,8 @@ import {
 } from '@digita/core';
 import { MarginBadge } from '../components/MarginBadge';
 import { variantLabel } from '../lib/labels';
-import { useCatalogStore, useCostingContext } from '../store/catalogStore';
+import { useCatalogStore } from '../store/catalogStore';
+import { useCostingContext } from '../store/selectors';
 
 const QUADRANT_META: Record<MenuQuadrant, { label: string; color: string; scheme: string }> = {
   star: { label: 'Star', color: '#2f855a', scheme: 'green' },

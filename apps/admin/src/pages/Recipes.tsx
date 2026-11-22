@@ -16,7 +16,8 @@ import { recipeCost, type RecipeLine } from '@digita/core';
 import { CostBreakdown } from '../components/CostBreakdown';
 import { PricePanel } from '../components/PricePanel';
 import { variantLabel } from '../lib/labels';
-import { useCatalogStore, useCostingContext } from '../store/catalogStore';
+import { useCatalogStore } from '../store/catalogStore';
+import { useCostingContext } from '../store/selectors';
 
 export function Recipes() {
   const {
