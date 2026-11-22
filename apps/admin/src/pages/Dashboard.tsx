@@ -26,9 +26,10 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { formatPeso } from '@digita/core';
+import { DATA_MODE_INFO, formatPeso } from '@digita/core';
 import { MarginBadge } from '../components/MarginBadge';
 import { StatTile } from '../components/StatTile';
+import { useCatalogStore } from '../store/catalogStore';
 import { productMargins, salesByHour, stockAlerts, todayTotals } from '../data/demoData';
 
 const STATUS_LABEL: Record<string, { text: string; scheme: string }> = {
@@ -38,6 +39,7 @@ const STATUS_LABEL: Record<string, { text: string; scheme: string }> = {
 };
 
 export function Dashboard() {
+  const source = useCatalogStore((s) => s.source);
   const cardBg = useColorModeValue('white', 'gray.800');
   const border = useColorModeValue('blackAlpha.100', 'whiteAlpha.100');
   const muted = useColorModeValue('gray.500', 'whiteAlpha.600');
@@ -48,9 +50,22 @@ export function Dashboard() {
 
   return (
     <Flex direction="column" gap={6}>
-      <Alert status="info" borderRadius="10px" fontSize="sm">
+      {/* Deliberately specific about scope. The header badge reports where the
+          CATALOG is loaded from, which can legitimately say "Live" while this
+          page is still entirely sample data — sales are not recorded anywhere
+          yet. Saying only "showing demo figures" next to a Live badge reads as
+          a contradiction and leaves the reader to work out which to believe. */}
+      <Alert status="warning" borderRadius="10px" fontSize="sm" alignItems="flex-start">
         <AlertIcon />
-        Showing demo figures. Connect the Supabase tables in Phase 1 to see live sales.
+        <Box>
+          <Text fontWeight="600">Every figure on this page is sample data</Text>
+          <Text fontSize="xs">
+            Nothing records sales yet, so these totals, charts and stock alerts are invented —
+            including the costs and margins. The {DATA_MODE_INFO[source].label.toLowerCase()} badge
+            above refers to the catalog, which Menu &amp; Margins, Recipes and Inventory do read
+            for real.
+          </Text>
+        </Box>
       </Alert>
 
       <SimpleGrid columns={{ base: 1, sm: 2, xl: 5 }} spacing={4}>
