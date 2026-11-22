@@ -16,7 +16,15 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-set -a && . /Users/klein-hans/projects/payroll/.env && set +a
+# Credentials: the local .env when it exists, otherwise the environment —
+# which is how CI supplies them, with no file on disk.
+if [ -f /Users/klein-hans/projects/payroll/.env ]; then
+  set -a && . /Users/klein-hans/projects/payroll/.env && set +a
+fi
+if [ -z "${SUPABASE_DB_PASSWORD:-}" ]; then
+  echo "SUPABASE_DB_PASSWORD is not set, and no local .env was found." >&2
+  exit 1
+fi
 export PGPASSWORD="$SUPABASE_DB_PASSWORD"
 CONN="host=aws-0-us-west-1.pooler.supabase.com port=5432 dbname=postgres user=postgres.peaotjteojnkrzkmtote sslmode=require"
 

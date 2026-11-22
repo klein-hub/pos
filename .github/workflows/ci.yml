@@ -1,0 +1,130 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A new push to the same branch makes the previous run irrelevant.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Tests, types and bundles. Fast, and the one most changes will trip.
+  app:
+    name: tests · types · build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Tests
+        run: pnpm test
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      # Placeholders, not secrets. The builds only need these to exist: the
+      # requireEnv plugin fails the build without them, and a bundle built
+      # against a fake URL still proves the code compiles and chunks correctly.
+      - name: Build
+        env:
+          VITE_SUPABASE_URL: https://ci.invalid.supabase.co
+          VITE_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+        run: |
+          pnpm --filter @digita/admin build
+          pnpm --filter @digita/hub build
+
+      # A missing .env silently strips the entire Supabase client from the
+      # bundle via dead-code elimination — the build still succeeds, and the
+      # app white-screens in production. This caught that once; it should not
+      # need catching twice.
+      - name: The Supabase client is actually in the bundle
+        run: |
+          for app in admin hub; do
+            if ! grep -rqs "refresh_token" "apps/$app/dist/assets/"; then
+              echo "::error::apps/$app bundle has no Supabase client — dead-code eliminated?"
+              exit 1
+            fi
+            echo "apps/$app: Supabase client present"
+          done
+
+  # Migrations and the behaviour they are supposed to guarantee, against a
+  # real Postgres rather than a mock.
+  database:
+    name: migrations · schema behaviour
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        # Matches what the local harness runs. Supabase is on 15, so this is
+        # deliberately ahead: a migration that needs 17 would pass here and
+        # fail on deploy, which is why anything version-sensitive belongs in
+        # a dry run against live as well.
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: psql client
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends postgresql-client
+
+      - name: Migrations and schema tests
+        env:
+          PGHOST: localhost
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGTMP: ${{ runner.temp }}/pg
+        run: ./scripts/db-test.sh
+
+  # Only runs where the live credentials exist, so forks and PRs from them do
+  # not fail on a secret they cannot have.
+  live-checks:
+    name: catalog parity · harness drift
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.repository == 'klein-hub/pos'
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: psql client
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends postgresql-client
+
+      - name: Does the seeded catalog still match the code?
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: ./scripts/check-catalog-parity.sh
+
+      - name: Does the test harness still mirror what live requires?
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: ./scripts/check-harness-drift.sh

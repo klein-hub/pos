@@ -29,6 +29,10 @@ The drift check exists because the harness's `companies` stub once lacked the
 and would only have failed in production. Re-running it later found the same
 bug twice more in `employees`.
 
+All of this also runs in GitHub Actions on every push and pull request
+(`.github/workflows/ci.yml`), so a red check is the backstop. Running it
+locally first is still faster than waiting for CI.
+
 Report what actually happened, including counts. "142 tests passing" is a
 useful claim; "tests pass" is not.
 
