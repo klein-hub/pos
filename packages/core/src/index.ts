@@ -24,6 +24,10 @@ export * from './seed/catalog.js';
 export * from './data/dataMode.js';
 export * from './data/catalogRepository.js';
 
+// The app launcher: which apps exist, and carrying a session between them
+export * from './apps/registry.js';
+export * from './apps/handoff.js';
+
 // Utilities
 export * from './utils/money.js';
 

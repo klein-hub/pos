@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { Session, User } from '@supabase/supabase-js';
+import { takeHandoffFromUrl } from '@digita/core';
 import { supabase } from '../lib/supabase';
 
 export interface Profile {
@@ -37,10 +38,30 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   initialise: async () => {
     set({ loading: true });
     try {
-      const { data } = await supabase.auth.getSession();
-      await hydrate(set, data.session);
+      // A session handed over by the launcher takes precedence over whatever
+      // this origin happens to have stored: the hub is where the user just
+      // signed in, so it is the more recent truth. Reading it also strips it
+      // from the address bar.
+      const handed = takeHandoffFromUrl(window.location, window.history);
+      let adopted = false;
+      if (handed) {
+        const { data, error } = await supabase.auth.setSession(handed);
+        if (error) {
+          // A stale or rejected token must not block the normal path.
+          set({ error: `Could not use the session from the launcher: ${error.message}` });
+        } else {
+          await hydrate(set, data.session);
+          adopted = true;
+        }
+      }
 
-      // Keep the store in step with token refreshes and sign-outs in other tabs.
+      if (!adopted) {
+        const { data } = await supabase.auth.getSession();
+        await hydrate(set, data.session);
+      }
+
+      // Registered either way. Returning early on a successful handoff would
+      // leave the store deaf to token refreshes and to sign-outs in other tabs.
       supabase.auth.onAuthStateChange((_event, session) => {
         void hydrate(set, session);
       });

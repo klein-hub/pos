@@ -1,6 +1,7 @@
 import { Box, Flex, IconButton, Text, useColorMode, useColorModeValue } from '@chakra-ui/react';
 import { Moon, Sun } from 'lucide-react';
 import { Outlet, useLocation } from 'react-router-dom';
+import { BackToHub } from '../components/BackToHub';
 import { DataModeBadge, DataModeBanner } from '../components/DataModeBar';
 import { Sidebar } from '../components/layout/Sidebar';
 import { SidebarProvider, useSidebar } from '../contexts/SidebarContext';
@@ -49,6 +50,7 @@ function LayoutContent() {
             {title}
           </Text>
           <Flex align="center" gap={3}>
+            <BackToHub />
             <DataModeBadge />
             <IconButton
               aria-label="Toggle colour mode"
