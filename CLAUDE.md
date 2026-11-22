@@ -11,12 +11,27 @@ against plausible alternatives.
 ## Layout
 
 ```
-apps/pos        Expo / React Native — POS + Inventory (staff). NOT STARTED.
-apps/admin      Vite + React + Chakra — Sales Monitoring + Admin (owner)
+apps/hub        Vite + React — the app launcher (:5175). Signs in, links out.
+apps/admin      Vite + React + Chakra — Sales + Inventory + Admin (:5174)
+apps/pos        Expo / React Native — the till (:8081)
 packages/core   Shared types, Supabase client factory, and the costing engine
 supabase/       Forward-only migrations against the shared database
-scripts/        DB test harness and seed generation
+scripts/        DB test harness, seed generation, dev account
 ```
+
+The payroll app lives in a separate repo (`../payroll`, :5173) and is reached
+from the launcher like the rest.
+
+### Signing in once
+
+The apps sit on different ports, and a port is part of an origin, so none of
+them share localStorage. The launcher therefore hands its session to the app
+it opens, in the URL fragment — see `packages/core/src/apps/handoff.ts`, and
+its duplicate at `payroll/src/lib/hubHandoff.ts`, which must stay in step.
+
+A fragment never reaches a server or an access log and is stripped on arrival,
+but it does pass through browser history: this is a development-grade handoff,
+not a substitute for an identity provider once these are deployed apart.
 
 `packages/core` is consumed as **TypeScript source**, not a build artifact —
 editing the costing engine is live in both apps with no build step. That is why

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ChevronLeft } from 'lucide-react-native';
 import { backend } from '../backend';
+import { BackToHub } from './BackToHub';
 import { colors, radius, text } from '../theme';
 
 interface TopBarProps {
@@ -32,6 +33,7 @@ export function TopBar({ title, subtitle, onBack, right }: TopBarProps) {
           </Text>
         ) : null}
       </View>
+      <BackToHub />
       {right}
     </View>
   );
