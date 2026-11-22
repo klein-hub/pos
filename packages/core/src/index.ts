@@ -20,6 +20,10 @@ export * from './costing/checkout.js';
 export * from './seed/openingCosts.js';
 export * from './seed/catalog.js';
 
+// Where data comes from: the in-memory seed, a demo company, or the live one
+export * from './data/dataMode.js';
+export * from './data/catalogRepository.js';
+
 // Utilities
 export * from './utils/money.js';
 

@@ -16,10 +16,17 @@ create table auth.users (
 create or replace function auth.uid() returns uuid
 language sql stable as $$ select current_setting('request.jwt.claim.sub', true)::uuid $$;
 
+-- Mirrors live: brand is NOT NULL there, and a migration that forgets it must
+-- fail here rather than in production.
 create table public.companies (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  currency text
+  brand text not null,
+  slug text,
+  currency text,
+  timezone text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
 create table public.profiles (
@@ -78,5 +85,5 @@ begin
 end $$;
 
 -- The real Zenverse Cafe id, so the seed migration runs unmodified.
-insert into public.companies (id, name, currency)
-values ('0e573ed8-ebe8-4e32-88aa-87100e838dab', 'Zenverse Cafe', 'PHP');
+insert into public.companies (id, name, brand, currency)
+values ('0e573ed8-ebe8-4e32-88aa-87100e838dab', 'Zenverse Cafe', 'Zenverse', 'PHP');
