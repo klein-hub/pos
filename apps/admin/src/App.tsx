@@ -13,6 +13,7 @@ import { Recipes } from './pages/Recipes';
 import { StockCounts } from './pages/StockCounts';
 import { Waste } from './pages/Waste';
 import { useAuthStore } from './store/authStore';
+import { useDataModeStore } from './store/dataModeStore';
 
 function RequireAuth({ children }: { children: JSX.Element }) {
   const { session, initialised } = useAuthStore();
@@ -28,10 +29,20 @@ function RequireAuth({ children }: { children: JSX.Element }) {
 
 export default function App() {
   const initialise = useAuthStore((s) => s.initialise);
+  const session = useAuthStore((s) => s.session);
+  const initialised = useAuthStore((s) => s.initialised);
+  const startData = useDataModeStore((s) => s.start);
 
   useEffect(() => {
     void initialise();
   }, [initialise]);
+
+  // Only once auth has settled: the starting mode depends on whether this user
+  // may switch and which company their profile points at, and loading before
+  // that is known would read the wrong company and then have to redo it.
+  useEffect(() => {
+    if (initialised && session) void startData();
+  }, [initialised, session, startData]);
 
   return (
     <Router>

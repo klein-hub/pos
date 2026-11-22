@@ -84,11 +84,14 @@ interface RecipeLineRow {
 }
 
 /**
- * Postgres returns numeric as a string, because a numeric can hold values no
- * JavaScript number can. Our quantities and costs are comfortably in range, so
- * converting is safe — but it has to be deliberate. Left implicit, `pack_size`
- * arrives as "1000.0000" and every arithmetic operation on it silently becomes
- * string concatenation.
+ * Coerce a numeric column to a JS number.
+ *
+ * PostgREST serialises `numeric` as a JSON number (verified against the live
+ * API: pack_size, qty and standard_unit_cost all arrive as numbers). The `pg`
+ * driver the scripts use returns the same columns as strings, because a
+ * numeric can hold values no JS number can. This mapper tolerates both so it
+ * stays correct if it is ever pointed at a direct connection — and so a string
+ * can never slip through to arithmetic, where `+` would silently concatenate.
  */
 function num(v: number | string | null | undefined): number {
   if (v === null || v === undefined) return 0;

@@ -174,8 +174,8 @@ begin
 
   -- ---- A sale ---------------------------------------------------------------
 
-  insert into employees (first_name, last_name, company_id)
-  values ('Test', 'Cashier', v_company) returning id into v_emp;
+  insert into employees (first_name, last_name, position, employment_type, company_id)
+  values ('Test', 'Cashier', 'Barista', 'full_time', v_company) returning id into v_emp;
 
   insert into pos_sales (company_id, location_id, receipt_no, cashier_employee_id,
                          subtotal, vat_amount, total)

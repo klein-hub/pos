@@ -17,7 +17,19 @@ pnpm --filter @digita/admin build
 ./scripts/db-test.sh      # migrations + schema behaviour, throwaway Postgres
 ```
 
-Report what actually happened, including counts. "71 tests passing" is a
+Two more, when the database is reachable:
+
+```bash
+./scripts/check-catalog-parity.sh   # seeded catalog still matches the JS seed
+./scripts/check-harness-drift.sh    # harness still mirrors what live requires
+```
+
+The drift check exists because the harness's `companies` stub once lacked the
+`NOT NULL brand` that live has, so a migration that omitted it passed locally
+and would only have failed in production. Re-running it later found the same
+bug twice more in `employees`.
+
+Report what actually happened, including counts. "142 tests passing" is a
 useful claim; "tests pass" is not.
 
 ## Reading the build output

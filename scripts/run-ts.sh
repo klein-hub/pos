@@ -26,4 +26,13 @@ trap 'rm -rf "$OUT"' EXIT
   --module commonjs --moduleResolution node \
   --target es2022 --skipLibCheck --esModuleInterop >&2
 
-node "$OUT/${ENTRY%.ts}.js" "$@"
+# A generator whose output is redirected into a migration file must never
+# produce a short or empty one. A 2>/dev/null once hid a compile failure here
+# and produced a migration silently missing all 36 raw materials, so emptiness
+# is treated as failure rather than as valid output.
+GENERATED=$(node "$OUT/${ENTRY%.ts}.js" "$@")
+if [ "$(printf '%s' "$GENERATED" | wc -c)" -lt 200 ]; then
+  echo "run-ts.sh: $ENTRY produced ${#GENERATED} bytes — treating as a failure." >&2
+  exit 1
+fi
+printf '%s\n' "$GENERATED"

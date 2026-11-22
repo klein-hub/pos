@@ -2,7 +2,9 @@ import { create } from 'zustand';
 import {
   buildSeedCatalog,
   resolveUnitCost,
+  type Catalog,
   type Centavos,
+  type DataMode,
   type CostingContext,
   type InventoryItem,
   type Product,
@@ -20,8 +22,8 @@ interface CatalogState {
   recipeLines: RecipeLine[];
   notes: Record<string, string>;
   volumes: Record<string, number>;
-  /** True while running on seed data instead of Supabase. */
-  isSeed: boolean;
+  /** Where the loaded catalog came from. Drives the non-live banner. */
+  source: DataMode;
 
   setPrice: (variantId: string, price: Centavos) => void;
   setTargetMargin: (variantId: string, targetPct: number) => void;
@@ -30,6 +32,8 @@ interface CatalogState {
   removeLine: (lineId: string) => void;
   /** Stocking settings only — par, reorder point, supplier, shelf life, yield. */
   updateItem: (itemId: string, patch: ItemSettings) => void;
+  /** Swap the whole catalog when the data source changes. */
+  replaceCatalog: (catalog: Catalog, source: DataMode) => void;
   reset: () => void;
 }
 
@@ -45,7 +49,7 @@ const seed = buildSeedCatalog();
 export const useCatalogStore = create<CatalogState>((set) => ({
   ...seed,
   volumes: seedVolumes,
-  isSeed: true,
+  source: 'local',
 
   setPrice: (variantId, price) =>
     set((state) => ({
@@ -96,7 +100,18 @@ export const useCatalogStore = create<CatalogState>((set) => ({
       items: state.items.map((i) => (i.id === itemId ? { ...i, ...patch } : i)),
     })),
 
-  reset: () => set({ ...buildSeedCatalog(), volumes: seedVolumes }),
+  replaceCatalog: (catalog, source) =>
+    set({
+      items: catalog.items,
+      unitCosts: catalog.unitCosts,
+      products: catalog.products,
+      variants: catalog.variants,
+      recipeLines: catalog.recipeLines,
+      notes: catalog.notes,
+      source,
+    }),
+
+  reset: () => set({ ...buildSeedCatalog(), volumes: seedVolumes, source: 'local' }),
 }));
 
 function clamp(v: number, min: number, max: number): number {

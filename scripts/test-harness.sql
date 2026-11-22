@@ -35,10 +35,15 @@ create table public.profiles (
   role text not null default 'user'
 );
 
+-- position and employment_type are NOT NULL with no default in live, so they
+-- are here too: an insert that omits them must fail in the test, not only in
+-- production. Found by scripts/check-harness-drift.sh.
 create table public.employees (
   id bigserial primary key,
   first_name text not null,
   last_name text not null,
+  position text not null,
+  employment_type text not null,
   company_id uuid references public.companies (id),
   auth_user_id uuid references auth.users (id)
 );

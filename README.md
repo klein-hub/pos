@@ -60,5 +60,5 @@ pnpm test
 
 ## Status
 
-Phase 0 (scaffold + costing engine) is done: 61 tests, admin shell with auth,
+Phases 0–5 and 7 are done: 142 tests, the full schema and catalog live in
 dashboard rendering against demo fixtures. Phase 1 is the Supabase schema.

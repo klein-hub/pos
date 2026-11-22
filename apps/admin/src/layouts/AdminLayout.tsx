@@ -1,6 +1,7 @@
 import { Box, Flex, IconButton, Text, useColorMode, useColorModeValue } from '@chakra-ui/react';
 import { Moon, Sun } from 'lucide-react';
 import { Outlet, useLocation } from 'react-router-dom';
+import { DataModeBadge, DataModeBanner } from '../components/DataModeBar';
 import { Sidebar } from '../components/layout/Sidebar';
 import { SidebarProvider, useSidebar } from '../contexts/SidebarContext';
 
@@ -47,15 +48,19 @@ function LayoutContent() {
           <Text fontSize="lg" fontWeight="600">
             {title}
           </Text>
-          <IconButton
-            aria-label="Toggle colour mode"
-            icon={colorMode === 'light' ? <Moon size={18} /> : <Sun size={18} />}
-            variant="ghost"
-            size="sm"
-            onClick={toggleColorMode}
-          />
+          <Flex align="center" gap={3}>
+            <DataModeBadge />
+            <IconButton
+              aria-label="Toggle colour mode"
+              icon={colorMode === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+              variant="ghost"
+              size="sm"
+              onClick={toggleColorMode}
+            />
+          </Flex>
         </Flex>
         <Box as="main" p={6}>
+          <DataModeBanner />
           <Outlet />
         </Box>
       </Box>

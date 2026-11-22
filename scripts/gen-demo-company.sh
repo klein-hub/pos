@@ -9,6 +9,8 @@
 # RLS already enforces — not by an is_demo flag each future query would have to
 # remember.
 set -euo pipefail
+# pipefail matters here: these generators are piped through `strip`, and
+# without it a failing generator would be masked by sed's exit code.
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DEMO_ID=${DEMO_COMPANY_ID:-11111111-2222-4333-8444-555555555555}

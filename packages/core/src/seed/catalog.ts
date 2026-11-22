@@ -217,6 +217,11 @@ const productSpecs: ProductSpec[] = [
   },
 ];
 
+/**
+ * A whole catalog, whatever its origin — the built-in seed or a company's rows
+ * in Supabase. Both produce this shape, which is what lets the data source be
+ * swapped without anything downstream noticing.
+ */
 export interface SeedCatalog {
   items: InventoryItem[];
   unitCosts: Record<string, number>;
@@ -344,3 +349,6 @@ export function buildSeedCatalog(): SeedCatalog {
 
   return { items, unitCosts, products, variants, modifierGroups, modifiers, recipeLines, notes };
 }
+
+/** Preferred name now that this shape is not only produced by the seed. */
+export type Catalog = SeedCatalog;
