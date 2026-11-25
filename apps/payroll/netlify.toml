@@ -1,0 +1,29 @@
+# Netlify site: Digita Payroll (@digita/payroll)
+# Package directory = apps/payroll; Base directory unset (repo root).
+# All paths below are relative to the repo root.
+# Required env vars: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_HUB_URL
+# Never set VITE_DEV_LOGIN_* on Netlify.
+#
+# WARNING: The Express admin API (server.js) is NOT deployed by this site.
+# It needs the Supabase service-role key, which must never be exposed through
+# a VITE_ variable (VITE_* values are bundled into public client JS).
+
+[build]
+  command = "pnpm turbo run build --filter=@digita/payroll"
+  publish = "apps/payroll/dist"
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF apps/payroll packages package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.base.json"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"

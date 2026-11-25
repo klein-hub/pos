@@ -1,0 +1,25 @@
+# Netlify site: Digita Inventory/Admin (@digita/admin)
+# Package directory = apps/admin; Base directory unset (repo root).
+# All paths below are relative to the repo root.
+# Required env vars: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_HUB_URL
+# Never set VITE_DEV_LOGIN_* on Netlify.
+
+[build]
+  command = "pnpm turbo run build --filter=@digita/admin"
+  publish = "apps/admin/dist"
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF apps/admin packages package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.base.json"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
